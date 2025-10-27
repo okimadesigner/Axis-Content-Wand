@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Axis Content Wand</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 13px;
+            background: var(--figma-color-bg);
+            color: var(--figma-color-text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hero-section {
+            background: #FDF9F8;
+            padding: 24px;
+            text-align: center;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .hero-content {
+            max-width: 320px;
+            margin: 0 auto;
+        }
+
+        .hero-icon {
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hero-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .hero-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .hero-description {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .primary-btn {
+            background: #97144d;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            min-width: 180px;
+        }
+
+        .primary-btn:hover:not(:disabled) {
+            background: #7d0f3f;
+            transform: translateY(-1px);
+        }
+
+        .primary-btn:disabled {
+            background: #E5C5D3;
+            color: #ffffff;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .primary-btn.optimized {
+            background: #059669;
+        }
+
+        .primary-btn.optimized:hover:not(:disabled) {
+            background: #047857;
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: var(--figma-color-bg);
+        }
+
+        .bento-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            height: 100%;
+            min-height: 400px;
+        }
+
+        .bento-card {
+            background: #FBFBFB;
+            border: 1px solid var(--figma-color-border);
+            border-radius: 12px;
+            padding: 20px;
+            padding-right: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--figma-color-text);
+            margin-bottom: 4px;
+        }
+
+        .card-subtitle {
+            font-size: 12px;
+            color: var(--figma-color-text-secondary);
+        }
+
+        .card-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        .card-content::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .card-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .card-content::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 2px;
+        }
+
+        .recommendations-header {
+            margin-bottom: 16px;
+        }
+
+        .fix-all-btn {
+            background: #97144d;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            margin-top: 8px;
+        }
+
+        .fix-all-btn:hover {
+            background: #7d0f3f;
+        }
+
+        .text-item {
+            background: var(--figma-color-bg);
+            border: 1px solid var(--figma-color-border);
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .text-item:hover {
+            border-color: rgba(151, 20, 77, 0.2);
+        }
+
+        .text-item.has-violations {
+            border-color: rgba(245, 158, 11, 0.4);
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .text-item.likely-compliant {
+            border-color: rgba(34, 197, 94, 0.3);
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        .text-item.recently-fixed {
+            border-color: rgba(59, 130, 246, 0.4);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .text-item.skipped-analysis {
+            border-color: rgba(107, 114, 128, 0.3);
+            background: rgba(107, 114, 128, 0.05);
+        }
+
+        .text-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .text-name {
+            font-size: 12px;
+            color: var(--figma-color-text-secondary);
+            font-weight: 500;
+            flex: 1;
+            margin-right: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .compliance-indicator {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .compliance-indicator.compliant {
+            background: rgba(34, 197, 94, 0.1);
+            color: #16a34a;
+        }
+
+        .compliance-indicator.needs-review {
+            background: rgba(245, 158, 11, 0.1);
+            color: #d97706;
+        }
+
+        .compliance-indicator.recently-fixed {
+            background: rgba(59, 130, 246, 0.1);
+            color: #2563eb;
+        }
+
+        .compliance-indicator.skipped {
+            background: rgba(107, 114, 128, 0.1);
+            color: #6b7280;
+        }
+
+        .fix-btn {
+            background: var(--figma-color-bg);
+            color: var(--figma-color-text);
+            border: 1px solid var(--figma-color-border);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .fix-btn:hover {
+            background: #97144d;
+            color: white;
+            border-color: #97144d;
+        }
+
+        .text-content {
+            font-size: 12px;
+            line-height: 1.4;
+            background: var(--figma-color-bg);
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--figma-color-border);
+            margin-bottom: 8px;
+        }
+
+        .text-content.original {
+            opacity: 0.7;
+        }
+
+        .text-content.corrected {
+            border-color: rgba(34, 197, 94, 0.3);
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        .violations {
+            margin-top: 8px;
+        }
+
+        .violation {
+            background: var(--figma-color-bg);
+            border: 1px solid var(--figma-color-border);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 6px;
+            font-size: 11px;
+        }
+
+        .violation-type {
+            font-weight: 600;
+            margin-bottom: 4px;
+            text-transform: capitalize;
+            color: #97144d;
+        }
+
+        .violation-change {
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        .violation-original {
+            background: rgba(239, 68, 68, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 10px;
+        }
+
+        .violation-suggested {
+            background: rgba(34, 197, 94, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 10px;
+        }
+
+        .violation-rule {
+            font-style: italic;
+            color: var(--figma-color-text-secondary);
+            font-size: 10px;
+            margin-top: 4px;
+            word-wrap: break-word;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            min-height: 200px;
+            color: var(--figma-color-text-secondary);
+            text-align: center;
+        }
+
+        .empty-state-icon {
+            font-size: 36px;
+            margin-bottom: 12px;
+            opacity: 0.4;
+        }
+
+        .empty-state p {
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            min-height: 200px;
+            color: var(--figma-color-text-secondary);
+            text-align: center;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--figma-color-border);
+            border-top: 3px solid #97144d;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-timer {
+            font-size: 20px;
+            font-weight: 600;
+            color: #97144d;
+            margin: 12px 0 8px 0;
+            font-variant-numeric: tabular-nums;
+            min-width: 60px;
+        }
+
+        .loading-status {
+            font-size: 13px;
+            color: var(--figma-color-text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .loading-subtitle {
+            font-size: 11px;
+            color: var(--figma-color-text-secondary);
+            opacity: 0.7;
+        }
+
+        .timer-normal {
+            color: #97144d;
+        }
+
+        .timer-warning {
+            color: #f59e0b;
+        }
+
+        .timer-critical {
+            color: #dc2626;
+        }
+
+        .error,
+        .success {
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #dc2626;
+        }
+
+        .success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            color: #16a34a;
+        }
+
+        .content-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--figma-color-text-secondary);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .warning-indicator {
+            color: #f59e0b;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 500;
+        }
+
+        .selection-info {
+            font-size: 12px;
+            color: var(--figma-color-text-secondary);
+            margin-bottom: 12px;
+            padding: 10px;
+            background: var(--figma-color-bg);
+            border-radius: 6px;
+            border: 1px solid var(--figma-color-border);
+        }
+
+        .stats-badge {
+            display: inline-flex;
+            align-items: center;
+            margin-top: 8px;
+            background: rgba(151, 20, 77, 0.1);
+            color: #97144d;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .compliance-badge {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 8px;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .compliance-badge.high {
+            background: rgba(34, 197, 94, 0.1);
+            color: #16a34a;
+        }
+
+        .compliance-badge.medium {
+            background: rgba(245, 158, 11, 0.1);
+            color: #d97706;
+        }
+
+        .compliance-badge.low {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+        }
+
+        .optimization-hint {
+            font-size: 11px;
+            color: var(--figma-color-text-secondary);
+            font-style: italic;
+            margin-top: 4px;
+        }
+
+        .analysis-stats {
+            font-size: 11px;
+            color: var(--figma-color-text-secondary);
+            margin-top: 8px;
+            padding: 8px;
+            background: rgba(151, 20, 77, 0.05);
+            border-radius: 6px;
+        }
+
+        .optimization-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            color: #059669;
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="hero-section">
+        <div class="hero-content">
+            <div class="hero-icon">
+                <svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="200" height="200" fill="#FDFAF8" />
+                    <g filter="url(#filter0_f_1013_868)">
+                        <path d="M120 84L77 157" stroke="#CA2778" stroke-opacity="0.83" stroke-width="2" />
+                    </g>
+                    <g filter="url(#filter1_n_1013_868)">
+                        <path
+                            d="M120.349 82.6904L78.6597 155.156H41.0874L101.478 50.2188L120.349 82.6904ZM162.124 155.144H124.48L101.619 115.279H139.262L162.124 155.144Z"
+                            fill="url(#paint0_linear_1013_868)" />
+                    </g>
+                    <g filter="url(#filter2_f_1013_868)">
+                        <path d="M76 55L137.27 165.664L141.959 160.205L110 106L91 72L76 55Z" fill="#51112D" />
+                    </g>
+                    <g filter="url(#filter3_f_1013_868)">
+                        <path
+                            d="M102.232 76.0986L105.079 73.2958C105.155 73.2259 105.164 73.1228 105.112 73.0332L102.833 68.8319C102.712 68.6106 102.954 68.4198 103.216 68.5061L108.365 70.2427C108.478 70.281 108.605 70.2701 108.69 70.2027L112.038 67.6943C112.24 67.5456 112.599 67.6958 112.591 67.9351L112.546 72.2072C112.546 72.3127 112.614 72.4141 112.732 72.4689L117.248 74.6069C117.518 74.7332 117.49 75.0497 117.202 75.0923L112.632 75.7528C112.575 75.7605 112.523 75.7813 112.482 75.8128C112.442 75.8444 112.414 75.8856 112.402 75.9319L111.435 80.1647C111.384 80.3849 111.032 80.4177 110.856 80.2264L107.516 76.4237C107.444 76.3364 107.324 76.2886 107.199 76.2924L102.538 76.5511C102.26 76.5586 102.053 76.2686 102.232 76.0986Z"
+                            fill="#5C0A2D" />
+                    </g>
+                    <g clip-path="url(#clip0_1013_868)">
+                        <path d="M138.639 162.816L131.266 166.97L68.6037 59.254L75.9668 55.0974L138.639 162.816Z"
+                            fill="url(#paint1_linear_1013_868)" />
+                        <path
+                            d="M71.5359 55.8732C68.8595 57.3841 68.6065 59.2444 68.6065 59.2444L79.6787 78.2775C79.7204 77.3442 80.9001 76.0038 82.6631 75.0007C84.4235 74.0069 86.1939 73.682 87.0418 74.1209L75.9696 55.0878C75.9671 55.0971 74.2217 54.3649 71.5359 55.8732Z"
+                            fill="url(#paint2_linear_1013_868)" />
+                        <path
+                            d="M123.009 144.355C120.333 145.866 120.08 147.727 120.08 147.727L131.177 166.816C131.219 165.883 132.374 164.486 134.137 163.483C135.897 162.489 137.714 162.217 138.552 162.653L127.443 143.57C127.443 143.57 125.686 142.845 123.009 144.355Z"
+                            fill="url(#paint3_linear_1013_868)" />
+                        <path
+                            d="M138.575 162.702C138.054 161.808 135.983 162.014 133.948 163.162C131.914 164.311 130.686 165.967 131.207 166.862C131.727 167.756 133.798 167.55 135.833 166.402C137.868 165.253 139.095 163.597 138.575 162.702Z"
+                            fill="#9E9E9E" />
+                        <path opacity="0.85"
+                            d="M68.6177 59.2773L115.292 139.497C115.814 140.395 117.884 140.191 119.909 139.04C121.943 137.892 123.168 136.236 122.644 135.347L75.9714 55.1181C75.9714 55.1181 74.3132 54.2505 71.524 55.88C68.7349 57.5094 68.6177 59.2773 68.6177 59.2773Z"
+                            fill="url(#paint4_linear_1013_868)" />
+                        <path opacity="0.22"
+                            d="M84.5733 86.7051L131.248 166.925C131.77 167.822 133.84 167.619 135.865 166.468C137.899 165.32 139.124 163.663 138.599 162.775L91.9389 82.5392C91.9389 82.5392 90.2806 81.6716 87.4915 83.301C84.7092 84.9423 84.5733 86.7051 84.5733 86.7051Z"
+                            fill="url(#paint5_linear_1013_868)" />
+                        <g filter="url(#filter4_dn_1013_868)">
+                            <path
+                                d="M54.5321 82.7488L50.4434 75.6933C50.2167 75.3036 50.6133 74.8445 51.0417 75.0105L57.4061 77.5033C57.6519 77.5998 57.9341 77.4875 58.0327 77.2358L61.141 69.568C61.3229 69.1202 61.9885 69.1915 62.0674 69.6802L63.569 78.957C63.5926 79.0927 63.68 79.2158 63.8013 79.2885L71.4559 83.9311C71.8291 84.1517 71.7397 84.7041 71.321 84.7993L63.5163 86.6486C63.4253 86.6708 63.3427 86.7181 63.2782 86.7851C63.2137 86.8521 63.1698 86.936 63.1518 87.0269L61.8083 94.2788C61.7908 94.3754 61.7435 94.4641 61.673 94.5328C61.6024 94.6015 61.512 94.6468 61.4141 94.6626C61.3161 94.6785 61.2154 94.664 61.1257 94.6212C61.036 94.5784 60.9617 94.5094 60.9128 94.4235L57.5455 88.4586C57.4519 88.2841 57.2461 88.1885 57.0478 88.2142L50.6019 89.1396C50.1626 89.1994 49.8672 88.6917 50.1604 88.3536L54.4995 83.2769C54.6173 83.1399 54.6351 82.9259 54.5321 82.7488Z"
+                                fill="url(#paint6_linear_1013_868)" />
+                        </g>
+                        <path
+                            d="M101.684 73.948L104.93 70.1159C105.017 70.02 105.033 69.8853 104.983 69.7723L102.809 64.4593C102.694 64.1794 102.967 63.9154 103.243 64.0103L108.665 65.9292C108.785 65.9716 108.922 65.9491 109.018 65.8558L112.783 62.3734C113.01 62.1667 113.387 62.3384 113.363 62.6501L113.033 68.2082C113.026 68.3455 113.092 68.4728 113.216 68.5363L117.931 71.019C118.214 71.1653 118.162 71.5788 117.85 71.6531L112.891 72.8132C112.829 72.827 112.772 72.8574 112.726 72.9011C112.681 72.9449 112.648 73.0002 112.632 73.0612L111.313 78.6292C111.244 78.9188 110.864 78.9846 110.686 78.7475L107.345 74.0226C107.274 73.9138 107.148 73.8597 107.013 73.8729L101.983 74.5164C101.684 74.5444 101.48 74.181 101.684 73.948Z"
+                            fill="url(#paint7_radial_1013_868)" />
+                        <g filter="url(#filter5_dn_1013_868)">
+                            <path
+                                d="M56.021 41.453L54.6309 32.6937C54.5582 32.2564 55.0452 32.0206 55.3652 32.3262L61.5224 38.1434C61.6662 38.2819 61.8776 38.3194 62.0416 38.2346L72.5296 32.1022C72.8602 31.9234 73.2715 32.2638 73.1872 32.6485L68.573 42.4133C68.5397 42.5733 68.5933 42.747 68.7208 42.871L77.266 50.9869C77.5766 51.2899 77.3983 51.7983 76.9911 51.7773L66.9568 50.1877C66.8678 50.1858 66.7806 50.2114 66.7074 50.2612C66.6343 50.3109 66.579 50.3821 66.5492 50.4649L62.8516 58.5594C62.7255 58.913 62.2468 58.9322 62.0501 58.5805L58.4562 49.9987C58.3807 49.8689 58.255 49.7751 58.1093 49.7554L46.9008 48.0759C46.4779 48.0009 46.3441 47.4177 46.7034 47.207L55.8178 41.9049C55.963 41.8151 56.0415 41.6375 56.021 41.453Z"
+                                fill="url(#paint8_linear_1013_868)" />
+                        </g>
+                        <path
+                            d="M69.1018 58.9411C69.0625 62.6492 68.8887 66.3705 68.2163 70.036C67.572 73.7091 66.3216 77.2774 64.7142 80.6395C63.088 83.9964 61.3106 87.2427 59.7038 90.5652C58.0971 93.8877 56.6167 97.2643 55.2438 100.69C54.5574 102.403 53.9247 104.14 53.2664 105.861C52.6276 107.547 52.2095 109.273 52.1519 111.007C52.1299 112.721 52.5039 114.424 53.5185 115.733C54.5118 117.047 56.0186 117.953 57.6979 118.408C61.0797 119.346 64.8216 118.92 68.3332 118.043C71.866 117.162 75.2631 115.668 78.6603 114.174C85.4683 111.209 92.1022 107.809 98.7637 104.456C102.1 102.777 105.428 101.094 108.792 99.4619C112.142 97.8058 115.554 96.256 119.023 94.8309C122.486 93.3941 126.049 92.104 129.76 91.2717C130.664 91.0595 131.664 90.824 132.753 90.9702C133.3 91.069 133.876 91.285 134.321 91.7239C134.766 92.1629 134.961 92.7428 135.049 93.2737C135.179 94.353 134.946 95.3238 134.647 96.2372C134.34 97.148 133.943 98.0149 133.496 98.8479C131.663 102.149 129.274 105.05 126.73 107.78C125.454 109.144 124.131 110.456 122.769 111.726C121.399 112.986 119.982 114.202 118.552 115.385C121.291 112.867 123.918 110.239 126.338 107.445C128.749 104.649 130.997 101.67 132.633 98.425C133.027 97.607 133.392 96.7814 133.651 95.937C133.91 95.0926 134.069 94.211 133.955 93.4442C133.886 93.0675 133.755 92.7336 133.511 92.5184C133.277 92.3056 132.94 92.1744 132.564 92.1121C131.783 92.0195 130.924 92.2141 130.023 92.4566C126.457 93.3482 122.991 94.6848 119.601 96.1909C106.04 102.215 93.1505 109.774 79.4554 115.921C76.0207 117.405 72.5316 118.904 68.791 119.808C65.0861 120.692 61.1077 121.173 57.208 120.065C55.2804 119.522 53.3953 118.414 52.1422 116.722C50.8584 115.031 50.4279 112.906 50.4777 110.941C50.5701 108.967 51.0409 107.046 51.7518 105.281C52.4595 103.564 53.1322 101.827 53.868 100.118C55.3397 96.699 56.919 93.3293 58.6127 90.0205C60.3158 86.7142 62.1589 83.4858 63.8613 80.2191C65.5706 76.9642 66.9341 73.536 67.7115 69.9288C68.5052 66.336 68.853 62.642 69.1018 58.9411Z"
+                            fill="#FDD835" />
+                        <path
+                            d="M70.164 87.5774C69.7946 98.6632 59.401 108.679 57.6624 120.06C57.0817 124.426 61.7155 127.543 70.901 125.691C86.9144 121.505 98.2419 112.13 104.479 109.229C99.653 114.094 87.8429 123.577 77.5171 129.594C62.1531 138.699 47.7629 132.337 50.9212 120.885C51.589 116.94 55.4835 110.012 57.4819 107.214C59.5616 104.487 67.0005 95.2999 70.164 87.5774Z"
+                            fill="url(#paint9_radial_1013_868)" />
+                    </g>
+                    <defs>
+                        <filter id="filter0_f_1013_868" x="68.1384" y="75.4924" width="60.7231" height="90.0151"
+                            filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                            <feFlood flood-opacity="0" result="BackgroundImageFix" />
+                            <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                            <feGaussianBlur stdDeviation="4" result="effect1_foregroundBlur_1013_868" />
+                        </filter>
+                        <filter id="filter1_n_1013_868" x="41.0874" y="50.2188" width="121.036" height="104.938"
+                            filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                            <feFlood flood-opacity="0" result="BackgroundImageFix" />
+                            <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                            <feTurbulence type="fractalNoise" baseFrequency="0.83333331346511841 0.83333331346511841"
+                                stitchTiles="stitch" numOctaves="3" result="noise" seed="6440" />
+                            <feColorMatrix in="noise" type="luminanceToAlpha" result="alphaNoise" />
+                            <feComponentTransfer in="alphaNoise" result="coloredNoise1">
+                                <feFuncA type="discrete"
+                                    tableValues="0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 " />
+                            </feComponentTransfer>
+                            <feComposite operator="in" in2="shape" in="coloredNoise1" result="noise1Clipped" />
+                            <feFlood flood-color="#B95A87" result="color1Flood" />
+                            <feComposite operator="in" in2="noise1Clipped" in="color1Flood" result="color1" />
+                            <feMerge result="effect1_noise_1013_868">
+                                <feMergeNode in="shape" />
+                                <feMergeNode in="color1" />
+                            </feMerge>
+                        </filter>
+                        <filter id="filter2_f_1013_868" x="62.3125" y="41.3125" width="93.3342" height="138.039"
+                            filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                            <feFlood flood-opacity="0" result="BackgroundImageFix" />
+                            <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                            <feGaussianBlur stdDeviation="6.84375" result="effect1_foregroundBlur_1013_868" />
+                        </filter>
+                        <filter id="filter3_f_1013_868" x="92.1653" y="57.635" width="35.27" height="32.7169"
+                            filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                            <feFlood flood-opacity="0" result="BackgroundImageFix" />
+                            <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                            <feGaussianBlur stdDeviation="5" result="effect1_foregroundBlur_1013_868" />
+                        </filter>
+                        <filter id="filter4_dn_1013_868" x="42.0427" y="65.2695" width="37.6487" height="41.3994"
+                            filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                            <feFlood flood-opacity="0" result="BackgroundImageFix" />
+                            <feColorMatrix in="SourceAlpha" type="matrix"
+                                values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+                            <feOffset dy="4" />
+                            <feGaussianBlur stdDeviation="4" />
+                            <feComposite in2="hardAlpha" operator="out" />
+                            <feColorMatrix type="matrix"
+                                values="0 0 0 0 0.617308 0 0 0 0 0.617308 0 0 0 0 0.617308 0 0 0 0.25 0" />
+                            <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1013_868" />
+                            <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                            <feTurbulence type="fractalNoise" baseFrequency="0.71428573131561279 0.71428573131561279"
+                                stitchTiles="stitch" numOctaves="3" result="noise" seed="261" />
+                            <feColorMatrix in="noise" type="luminanceToAlpha" result="alphaNoise" />
+                            <feComponentTransfer in="alphaNoise" result="coloredNoise1">
+                                <feFuncA type="discrete"
+                                    tableValues="0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 " />
+                            </feComponentTransfer>
+                            <feComposite operator="in" in2="shape" in="coloredNoise1" result="noise1Clipped" />
+                            <feFlood flood-color="rgba(246, 246, 246, 0.25)" result="color1Flood" />
+                            <feComposite operator="in" in2="noise1Clipped" in="color1Flood" result="color1" />
+                            <feMerge result="effect2_noise_1013_868">
+                                <feMergeNode in="shape" />
+                                <feMergeNode in="color1" />
+                            </feMerge>
+                            <feBlend mode="normal" in="effect2_noise_1013_868" in2="effect1_dropShadow_1013_868"
+                                result="effect2_noise_1013_868" />
+                        </filter>
+                        <filter id="filter5_dn_1013_868" x="38.4958" y="28.0532" width="46.9277" height="42.7814"
+                            filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                            <feFlood flood-opacity="0" result="BackgroundImageFix" />
+                            <feColorMatrix in="SourceAlpha" type="matrix"
+                                values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+                            <feOffset dy="4" />
+                            <feGaussianBlur stdDeviation="4" />
+                            <feComposite in2="hardAlpha" operator="out" />
+                            <feColorMatrix type="matrix"
+                                values="0 0 0 0 0.617308 0 0 0 0 0.617308 0 0 0 0 0.617308 0 0 0 0.25 0" />
+                            <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1013_868" />
+                            <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                            <feTurbulence type="fractalNoise" baseFrequency="0.71428573131561279 0.71428573131561279"
+                                stitchTiles="stitch" numOctaves="3" result="noise" seed="261" />
+                            <feColorMatrix in="noise" type="luminanceToAlpha" result="alphaNoise" />
+                            <feComponentTransfer in="alphaNoise" result="coloredNoise1">
+                                <feFuncA type="discrete"
+                                    tableValues="0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 " />
+                            </feComponentTransfer>
+                            <feComposite operator="in" in2="shape" in="coloredNoise1" result="noise1Clipped" />
+                            <feFlood flood-color="rgba(246, 246, 246, 0.25)" result="color1Flood" />
+                            <feComposite operator="in" in2="noise1Clipped" in="color1Flood" result="color1" />
+                            <feMerge result="effect2_noise_1013_868">
+                                <feMergeNode in="shape" />
+                                <feMergeNode in="color1" />
+                            </feMerge>
+                            <feBlend mode="normal" in="effect2_noise_1013_868" in2="effect1_dropShadow_1013_868"
+                                result="effect2_noise_1013_868" />
+                        </filter>
+                        <linearGradient id="paint0_linear_1013_868" x1="114.641" y1="108.391" x2="156.844" y2="174.547"
+                            gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#97144D" />
+                            <stop offset="1" stop-color="#C75285" />
+                        </linearGradient>
+                        <linearGradient id="paint1_linear_1013_868" x1="104.543" y1="126.552" x2="117.091" y2="120.111"
+                            gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#A72C71" />
+                            <stop offset="0.451923" stop-color="#CE2473" />
+                            <stop offset="1" stop-color="#840948" />
+                        </linearGradient>
+                        <linearGradient id="paint2_linear_1013_868" x1="74.4147" y1="67.751" x2="82.426" y2="63.0913"
+                            gradientUnits="userSpaceOnUse">
+                            <stop offset="0.262" stop-color="#F5F5F5" />
+                            <stop offset="0.466" stop-color="#EAEAEA" />
+                            <stop offset="0.822" stop-color="#CDCDCD" />
+                            <stop offset="0.989" stop-color="#BDBDBD" />
+                        </linearGradient>
+                        <linearGradient id="paint3_linear_1013_868" x1="125.898" y1="156.263" x2="133.928" y2="151.591"
+                            gradientUnits="userSpaceOnUse">
+                            <stop offset="0.262" stop-color="#F5F5F5" />
+                            <stop offset="0.466" stop-color="#EAEAEA" />
+                            <stop offset="0.822" stop-color="#CDCDCD" />
+                            <stop offset="0.989" stop-color="#BDBDBD" />
+                        </linearGradient>
+                        <linearGradient id="paint4_linear_1013_868" x1="93.2712" y1="93.2457" x2="70.0405" y2="52.0944"
+                            gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#FADA80" stop-opacity="0" />
+                            <stop offset="1" stop-color="#FADA80" />
+                        </linearGradient>
+                        <linearGradient id="paint5_linear_1013_868" x1="141.967" y1="176.953" x2="125.89" y2="148.474"
+                            gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#1A237E" />
+                            <stop offset="0.186" stop-color="#1D2A87" stop-opacity="0.814" />
+                            <stop offset="0.49" stop-color="#243DA0" stop-opacity="0.51" />
+                            <stop offset="0.873" stop-color="#2F5CC7" stop-opacity="0.127" />
+                            <stop offset="1" stop-color="#3367D6" stop-opacity="0" />
+                        </linearGradient>
+                        <linearGradient id="paint6_linear_1013_868" x1="51.6266" y1="71.5952" x2="76.043" y2="83.3242"
+                            gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#FFEFAD" />
+                            <stop offset="0.675" stop-color="#FFCA00" />
+                        </linearGradient>
+                        <radialGradient id="paint7_radial_1013_868" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse"
+                            gradientTransform="translate(104.928 66.6986) rotate(-95.1465) scale(11.4206 11.5339)">
+                            <stop stop-color="#FFEB3B" />
+                            <stop offset="1" stop-color="#FBC02D" />
+                        </radialGradient>
+                        <linearGradient id="paint8_linear_1013_868" x1="51" y1="32" x2="83.2253" y2="48.625"
+                            gradientUnits="userSpaceOnUse">
+                            <stop offset="0.325" stop-color="#FFCA00" />
+                            <stop offset="1" stop-color="#FFEFAD" />
+                        </linearGradient>
+                        <radialGradient id="paint9_radial_1013_868" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse"
+                            gradientTransform="translate(108.762 73.2115) rotate(-43.7934) scale(90.2516 54.4206)">
+                            <stop stop-color="#FFEE58" stop-opacity="0" />
+                            <stop offset="1" stop-color="#FDD835" />
+                        </radialGradient>
+                        <clipPath id="clip0_1013_868">
+                            <rect width="122.829" height="124.431" fill="white"
+                                transform="translate(19.6924 141.275) rotate(-74.8168)" />
+                        </clipPath>
+                    </defs>
+                </svg>
+            </div>
+            <h1 class="hero-title">Axis Content Wand</h1>
+            <p class="hero-description">
+                A simple yet powerful plugin that audits Figma design copy in one click - based on our Content Design
+                System guidelines.
+            </p>
+            <button class="primary-btn" id="analyzeBtn" disabled>Select Frame or Text Layers</button>
+            <div class="optimization-hint" id="optimizationHint" style="display: none;"></div>
+        </div>
+    </div>
+
+    <div class="content-area">
+        <div class="bento-grid">
+            <div class="bento-card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Selected Content</div>
+                        <div class="card-subtitle">Current text layers to analyze</div>
+                    </div>
+                </div>
+                <div class="card-content" id="currentContent">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🤏🏼</div>
+                        <p>Select text layers or frame and click "Analyze"</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bento-card">
+                <div class="recommendations-header">
+                    <div>
+                        <div class="card-title">Recommendations</div>
+                        <div class="card-subtitle">Content improvements and fixes</div>
+                        <button class="fix-all-btn" id="fixAllBtn" style="display: none;">Fix All</button>
+                    </div>
+                </div>
+                <div class="card-content" id="recommendations">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✨</div>
+                        <p>Recommendations will appear here</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://content-lint.vercel.app/api/analyze';
+
+        let currentTextLayers = [];
+        let analysisResults = [];
+        let currentFrameId = null;
+        let hasAnalyzed = false;
+        let currentSelectionInfo = null;
+        let recentlyFixedNodes = new Set();
+        let currentSelectionContext = '';
+
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const fixAllBtn = document.getElementById('fixAllBtn');
+        const currentContent = document.getElementById('currentContent');
+        const recommendations = document.getElementById('recommendations');
+        const optimizationHint = document.getElementById('optimizationHint');
+
+        // Event listeners
+        analyzeBtn.addEventListener('click', () => {
+            parent.postMessage({ pluginMessage: { type: 'analyze-selection' } }, '*');
+        });
+
+        fixAllBtn.addEventListener('click', applyAllFixes);
+
+        // Get initial selection
+        parent.postMessage({ pluginMessage: { type: 'get-selection-info' } }, '*');
+
+        // Handle messages from plugin
+        window.onmessage = async (event) => {
+            const msg = event.data.pluginMessage;
+
+            switch (msg.type) {
+                case 'selection-changed':
+                    handleSelectionChange(msg.frameId, msg.selectionInfo);
+                    break;
+
+                case 'text-extracted':
+                    currentTextLayers = msg.textLayers;
+                    currentFrameId = msg.frameId;
+                    hasAnalyzed = true;
+                    currentSelectionContext = msg.selectionContext || '';
+
+                    updateAnalyzeButton(msg.analysisType, msg.contextName, msg.optimizationHint, msg.compliantLayers, msg.totalLayers);
+                    displayCurrentContent(msg.textLayers, msg.analysisType, msg.contextName, msg.compliantLayers, msg.totalLayers, msg.needsAnalysisCount);
+
+                    // Only analyze layers that need analysis (optimization!)
+                    const layersToAnalyze = msg.analyzeOnlyLayers || msg.textLayers;
+                    if (layersToAnalyze.length > 0) {
+                        await analyzeContent(layersToAnalyze, msg.optimizationHint);
+                    } else {
+                        // All content is already compliant
+                        displayAllCompliantState(msg.totalLayers, msg.compliantLayers);
+                    }
+                    break;
+
+                case 'fix-applied':
+                    handleFixApplied(msg);
+                    break;
+
+                case 'all-fixes-applied':
+                    handleAllFixesApplied(msg);
+                    break;
+
+                case 'error':
+                    showError(msg.message);
+                    break;
+            }
+        };
+
+        function handleSelectionChange(frameId, selectionInfo) {
+            currentSelectionInfo = selectionInfo;
+
+            // Clear recently fixed nodes if selection context changes significantly
+            if (selectionInfo?.selectionContext &&
+                currentSelectionContext !== selectionInfo.selectionContext) {
+                const contextChanged = currentSelectionContext &&
+                    currentSelectionContext !== selectionInfo.selectionContext;
+
+                if (contextChanged) {
+                    // Clear old recently fixed state when switching to different selection
+                    recentlyFixedNodes.clear();
+                    resetUI();
+                }
+                currentSelectionContext = selectionInfo.selectionContext;
+            }
+
+            if (currentFrameId && currentFrameId !== frameId) {
+                resetUI();
+                currentFrameId = frameId;
+                hasAnalyzed = false;
+            } else if (frameId || (selectionInfo && selectionInfo.canAnalyze)) {
+                currentFrameId = frameId;
+            }
+
+            updateAnalyzeButtonForSelection(selectionInfo);
+        }
+
+        function updateAnalyzeButtonForSelection(selectionInfo) {
+            if (!selectionInfo) return;
+
+            const complianceLevel = selectionInfo.complianceEstimate || 0;
+            const recentlyFixedCount = selectionInfo.recentlyFixedLayers || 0;
+            let buttonClass = 'primary-btn';
+            let hintText = '';
+
+            if (selectionInfo.hasTextLayers && !selectionInfo.hasFrames) {
+                const count = selectionInfo.totalSelected;
+                analyzeBtn.textContent = count === 1 ? 'Analyze Selected Text' : `Analyze ${count} Text Layers`;
+                analyzeBtn.disabled = false;
+
+                if (complianceLevel >= 80) {
+                    buttonClass += ' optimized';
+                    hintText = 'Most content appears compliant - quick analysis expected';
+                }
+
+                if (recentlyFixedCount > 0) {
+                    hintText += ` â€¢ ${recentlyFixedCount} recently fixed`;
+                }
+            } else if (selectionInfo.hasFrames) {
+                const compliantCount = selectionInfo.likelyCompliantLayers || 0;
+                const totalCount = selectionInfo.totalVisibleTextLayers || 0;
+
+                analyzeBtn.textContent = 'Analyze Selected Frame';
+                analyzeBtn.disabled = false;
+
+                if (complianceLevel >= 70 && totalCount > 3) {
+                    buttonClass += ' optimized';
+                    hintText = `${compliantCount}/${totalCount} layers appear compliant - optimized analysis`;
+                } else if (totalCount > 10) {
+                    hintText = `${totalCount} text layers found - comprehensive analysis needed`;
+                }
+
+                if (recentlyFixedCount > 0) {
+                    hintText += ` â€¢ ${recentlyFixedCount} recently fixed`;
+                }
+            } else if (selectionInfo.totalSelected === 0) {
+                analyzeBtn.textContent = 'Select Frame or Text Layers';
+                analyzeBtn.disabled = true;
+                // Clear UI when nothing is selected
+                resetUIToEmptyState();
+            } else {
+                analyzeBtn.textContent = 'Select Frame or Text Layers';
+                analyzeBtn.disabled = true;
+            }
+
+            analyzeBtn.className = buttonClass;
+
+            if (hintText) {
+                optimizationHint.textContent = hintText;
+                optimizationHint.style.display = 'block';
+            } else {
+                optimizationHint.style.display = 'none';
+            }
+        }
+
+        function resetUIToEmptyState() {
+            currentTextLayers = [];
+            analysisResults = [];
+
+            currentContent.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🤏🏼</div>
+                    <p>Select text layers or frame and click "Analyze"</p>
+                </div>
+            `;
+
+            recommendations.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">✨</div>
+                    <p>Recommendations will appear here</p>
+                </div>
+            `;
+
+            fixAllBtn.style.display = 'none';
+            optimizationHint.style.display = 'none';
+        }
+
+        function updateAnalyzeButton(analysisType, contextName, optimizationHint, compliantLayers, totalLayers) {
+            if (hasAnalyzed) {
+                analyzeBtn.textContent = analysisType === 'text-layers' ?
+                    'Re-analyze Selected Text' : 'Re-analyze Selected Frame';
+
+                if (optimizationHint === 'mostly_compliant') {
+                    analyzeBtn.className = 'primary-btn optimized';
+                }
+            }
+
+            if (optimizationHint === 'mostly_compliant') {
+                document.getElementById('optimizationHint').textContent =
+                    `${compliantLayers}/${totalLayers} layers appear compliant - optimized analysis`;
+                document.getElementById('optimizationHint').style.display = 'block';
+            }
+        }
+
+        function resetUI() {
+            // Only reset if we're not just updating the same selection
+            if (currentSelectionContext) {
+                currentTextLayers = [];
+                analysisResults = [];
+
+                currentContent.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🤏🏼</div>
+                        <p>Select text layers or frame and click "Analyze"</p>
+                    </div>
+                `;
+
+                recommendations.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✨</div>
+                        <p>Recommendations will appear here</p>
+                    </div>
+                `;
+
+                fixAllBtn.style.display = 'none';
+                optimizationHint.style.display = 'none';
+            }
+        }
+
+        function displayRecommendations(results) {
+            recommendations.innerHTML = '';
+
+            const hasViolations = results.some(result => result.hasViolations);
+            const violationCount = results.filter(result => result.hasViolations).length;
+
+            fixAllBtn.style.display = violationCount > 1 ? 'block' : 'none';
+
+            if (!hasViolations) {
+                recommendations.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🎉</div>
+                        <p>All analyzed content follows guidelines!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            results.forEach(result => {
+                if (!result.hasViolations) return;
+
+                const layer = currentTextLayers.find(l => l.id === result.id);
+                const item = document.createElement('div');
+                item.className = 'text-item has-violations';
+
+                const originalText = layer ? layer.text : result.originalText || 'Original not found';
+                const correctedText = result.correctedText || originalText;
+
+                item.innerHTML = `
+                    <div class="text-item-header">
+                        <span class="text-name">${escapeHtml(layer?.name || 'Unknown Layer')}</span>
+                        <button class="fix-btn" data-node-id="${result.id}">Fix</button>
+                    </div>
+                    
+                    <div class="content-label">Original</div>
+                    <div class="text-content original">${escapeHtml(originalText)}</div>
+                    
+                    <div class="content-label">Suggested Fix</div>
+                    <div class="text-content corrected">${escapeHtml(correctedText)}</div>
+                    
+                    <div class="violations">
+                        ${(result.violations || []).map(violation => `
+                            <div class="violation">
+                                <div class="violation-type">${escapeHtml((violation.type || 'violation').replace(/_/g, ' '))}</div>
+                                <div class="violation-change">
+                                    Change <span class="violation-original">"${escapeHtml(violation.original || '')}"</span> 
+                                    to <span class="violation-suggested">"${escapeHtml(violation.suggested || '')}"</span>
+                                </div>
+                                <div class="violation-rule">${escapeHtml(violation.rule || '')}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+
+                const fixBtn = item.querySelector('.fix-btn');
+                fixBtn.addEventListener('click', () => {
+                    applyFix(result.id, correctedText);
+                });
+
+                recommendations.appendChild(item);
+            });
+        }
+
+        function handleFixApplied(msg) {
+            showSuccess(msg.message);
+            recentlyFixedNodes.add(msg.nodeId);
+
+            // Update the layer and result
+            const updatedLayer = currentTextLayers.find(layer => layer.id === msg.nodeId);
+            if (updatedLayer) {
+                const result = analysisResults.find(r => r.id === msg.nodeId);
+                if (result && result.correctedText) {
+                    updatedLayer.text = result.correctedText;
+                    updatedLayer.likelyCompliant = true;
+                    updatedLayer.recentlyFixed = true;
+                    result.hasViolations = false;
+                    result.violations = [];
+
+                    displayCurrentContent(currentTextLayers);
+                    displayRecommendations(analysisResults);
+                }
+            }
+        }
+
+        function handleAllFixesApplied(msg) {
+            showSuccess(msg.message);
+
+            if (msg.errors && msg.errors.length > 0) {
+                showError(`Some fixes failed: ${msg.errors.slice(0, 2).join(', ')}${msg.errors.length > 2 ? '...' : ''}`);
+            }
+
+            // Mark all successfully applied fixes
+            if (msg.appliedFixes) {
+                msg.appliedFixes.forEach(nodeId => {
+                    recentlyFixedNodes.add(nodeId);
+                    const result = analysisResults.find(r => r.id === nodeId);
+                    const layer = currentTextLayers.find(l => l.id === nodeId);
+                    if (result && layer && result.correctedText) {
+                        layer.text = result.correctedText;
+                        layer.likelyCompliant = true;
+                        layer.recentlyFixed = true;
+                        result.hasViolations = false;
+                        result.violations = [];
+                    }
+                });
+            }
+
+            displayCurrentContent(currentTextLayers);
+            displayRecommendations(analysisResults);
+        }
+
+        function applyFix(nodeId, newContent) {
+            parent.postMessage({
+                pluginMessage: {
+                    type: 'apply-fix',
+                    nodeId,
+                    newContent
+                }
+            }, '*');
+        }
+
+        function applyAllFixes() {
+            const fixes = analysisResults
+                .filter(result => result.hasViolations)
+                .map(result => ({ nodeId: result.id, newContent: result.correctedText }));
+
+            parent.postMessage({
+                pluginMessage: {
+                    type: 'apply-all-fixes',
+                    fixes
+                }
+            }, '*');
+
+            // Optimistically update UI
+            fixes.forEach(fix => {
+                const result = analysisResults.find(r => r.id === fix.nodeId);
+                if (result) {
+                    result.hasViolations = false;
+                    const layer = currentTextLayers.find(l => l.id === fix.nodeId);
+                    if (layer) {
+                        layer.text = fix.newContent;
+                        layer.likelyCompliant = true;
+                        layer.recentlyFixed = true;
+                    }
+                    recentlyFixedNodes.add(fix.nodeId);
+                }
+            });
+
+            displayCurrentContent(currentTextLayers);
+            displayRecommendations(analysisResults);
+        }
+
+
+
+        function showError(message) {
+            const existing = document.querySelector('.error');
+            if (existing) existing.remove();
+
+            const error = document.createElement('div');
+            error.className = 'error';
+            error.innerHTML = `<strong>âš ï¸ Error:</strong><br>${escapeHtml(message)}`;
+
+            const recommendationsContainer = document.getElementById('recommendations');
+            recommendationsContainer.insertBefore(error, recommendationsContainer.firstChild);
+
+            setTimeout(() => {
+                if (error && error.parentNode) {
+                    error.remove();
+                }
+            }, 8000);
+        }
+
+        function showSuccess(message) {
+            const existing = document.querySelector('.success');
+            if (existing) existing.remove();
+
+            const success = document.createElement('div');
+            success.className = 'success';
+            success.innerHTML = `<strong>âœ… Success:</strong><br>${escapeHtml(message)}`;
+
+            const recommendationsContainer = document.getElementById('recommendations');
+            recommendationsContainer.insertBefore(success, recommendationsContainer.firstChild);
+
+            setTimeout(() => {
+                if (success && success.parentNode) {
+                    success.remove();
+                }
+            }, 4000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Enhanced client-side handling for relationship-aware responses
+        function displayCurrentContent(textLayers, analysisType, contextName, compliantLayers, totalLayers, needsAnalysisCount) {
+            currentContent.innerHTML = '';
+
+            // ... existing context info logic (keep this if you want stats header) ...
+
+            textLayers.forEach(layer => {
+                const result = analysisResults.find(r => r.id === layer.id);
+                const hasViolations = result && result.hasViolations;
+                const isRecentlyFixed = recentlyFixedNodes.has(layer.id) || layer.recentlyFixed;
+                const isLikelyCompliant = layer.likelyCompliant && !hasViolations;
+                const isRecognizedAsCorrected = result && result.recognizedAsCorrected; // NEW
+
+                let itemClass = 'text-item';
+                let indicator = '';
+
+                if (isRecentlyFixed) {
+                    itemClass += ' recently-fixed';
+                    indicator = '<span class="compliance-indicator recently-fixed">Recently Fixed</span>';
+                } else if (isRecognizedAsCorrected) {
+                    // NEW: Handle recognized corrected versions
+                    itemClass += ' likely-compliant';
+                    indicator = '<span class="compliance-indicator compliant">Previously Fixed</span>';
+                } else if (hasViolations) {
+                    itemClass += ' has-violations';
+                    indicator = '<span class="compliance-indicator needs-review">Needs Review</span>';
+                } else if (isLikelyCompliant) {
+                    itemClass += ' likely-compliant';
+                    indicator = '<span class="compliance-indicator compliant">Compliant</span>';
+                } else if (layer.likelyCompliant && !result) {
+                    itemClass += ' skipped-analysis';
+                    indicator = '<span class="compliance-indicator skipped">Analysis Skipped</span>';
+                }
+
+                // NEW: Show additional info for recognized corrected text
+                let additionalInfo = '';
+                if (isRecognizedAsCorrected && result.originalTextBefore) {
+                    additionalInfo = `<div class="optimization-hint">Recognized as corrected version of: "${result.originalTextBefore}"</div>`;
+                }
+
+                const item = document.createElement('div');
+                item.className = itemClass;
+
+                item.innerHTML = `
+            <div class="text-item-header">
+                <span class="text-name">${escapeHtml(layer.name)}</span>
+                ${indicator}
+            </div>
+            <div class="text-content">${escapeHtml(layer.text)}</div>
+            ${additionalInfo}
+        `;
+
+                currentContent.appendChild(item);
+            });
+        }
+        // Enhanced success message for relationship recognition
+        function handleAnalysisResults(data) {
+            const recognizedCount = data.results.filter(r => r.recognizedAsCorrected).length;
+            const violationCount = data.results.filter(r => r.hasViolations).length;
+
+            if (recognizedCount > 0 && violationCount === 0) {
+                showSuccess(`✨ Smart Recognition: ${recognizedCount} text(s) identified as previously corrected versions!`);
+            }
+
+            analysisResults = data.results || [];
+            displayCurrentContent(currentTextLayers);
+            displayRecommendations(analysisResults); // This was missing the call
+        }
+
+
+        function displayAllCompliantState(totalLayers, compliantLayers) {
+            recommendations.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🎉</div>
+                    <p>All ${totalLayers} text layers are compliant!<br><small>No analysis needed - all content follows guidelines</small></p>
+                </div>
+            `;
+            fixAllBtn.style.display = 'none';
+        }
+        let loadingTimer = null;
+        let loadingStartTime = null;
+
+        function showLoadingWithTimer(layerCount, estimatedTime) {
+            loadingStartTime = Date.now();
+
+            recommendations.innerHTML = `
+        <div class="loading">
+            <div class="spinner"></div>
+            <div class="loading-timer timer-normal" id="loadingTimer">0s</div>
+            <div class="loading-status" id="loadingStatus">Preparing analysis...</div>
+            <div class="loading-subtitle">Analyzing ${layerCount} text layer${layerCount === 1 ? '' : 's'}</div>
+        </div>
+    `;
+
+            // Start timer
+            loadingTimer = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - loadingStartTime) / 1000);
+                const timerElement = document.getElementById('loadingTimer');
+
+                if (timerElement) {
+                    timerElement.textContent = `${elapsed}s`;
+
+                    // Update timer color based on progress
+                    timerElement.className = elapsed > 25 ? 'loading-timer timer-critical' :
+                        elapsed > 15 ? 'loading-timer timer-warning' :
+                            'loading-timer timer-normal';
+                }
+            }, 1000);
+        }
+
+        function updateLoadingStatus(status) {
+            const statusElement = document.getElementById('loadingStatus');
+            if (statusElement) {
+                statusElement.textContent = status;
+            }
+        }
+
+        function hideLoading() {
+            if (loadingTimer) {
+                clearInterval(loadingTimer);
+                loadingTimer = null;
+            }
+            loadingStartTime = null;
+        }
+        async function analyzeContent(textLayers, optimizationHint) {
+            // Estimate time based on complexity
+            const estimatedTime = textLayers.length > 20 ? 28000 :
+                textLayers.length > 10 ? 20000 : 12000;
+
+            // Show loading with timer
+            showLoadingWithTimer(textLayers.length, estimatedTime);
+
+            analyzeBtn.disabled = true;
+            const originalText = analyzeBtn.textContent;
+            analyzeBtn.textContent = 'Analyzing...';
+            fixAllBtn.style.display = 'none';
+
+            try {
+                updateLoadingStatus('Checking cache...');
+
+                const payload = textLayers.map(layer => ({
+                    id: layer.id,
+                    text: layer.text,
+                    likelyCompliant: layer.likelyCompliant || false
+                }));
+
+                updateLoadingStatus(`Analyzing ${textLayers.length} text layers...`);
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        textLayers: payload,
+                        clientHints: {
+                            optimizationHint: optimizationHint,
+                            totalLayers: textLayers.length,
+                            estimatedCompliant: textLayers.filter(l => l.likelyCompliant).length
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                }
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+
+                handleAnalysisResults(data);
+                ;
+
+            } catch (error) {
+                showError(`Analysis failed: ${error.message}`);
+                recommendations.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">⚠️</div>
+                <p>Analysis failed</p>
+            </div>
+        `;
+            } finally {
+                hideLoading(); // Replace stopProgress() with this
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = originalText;
+            }
+        }
+    </script>
+</body>
+
+</html>
