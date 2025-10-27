@@ -1,40 +1,54 @@
-Below are the steps to get your plugin running. You can also find instructions at:
+# Axis Content Wand
 
-  https://www.figma.com/plugin-docs/plugin-quickstart-guide/
+A powerful Figma plugin that audits and improves design copy based on content design system guidelines. With a single click, analyze text layers or entire frames and get instant recommendations for content improvements.
 
-This plugin template uses Typescript and NPM, two standard tools in creating JavaScript applications.
+## Features
 
-First, download Node.js which comes with NPM. This will allow you to install TypeScript and other
-libraries. You can find the download link here:
+- **One-Click Analysis**: Select text layers or frames and analyze content compliance
+- **Intelligent Recommendations**: Get specific suggestions for improving copy based on guidelines
+- **Bulk Fixes**: Apply all recommended fixes at once with the "Fix All" button
+- **Optimized Analysis**: Smart caching and compliance detection skips already compliant content
+- **Real-time Feedback**: See violations and suggested improvements instantly
 
-  https://nodejs.org/en/download/
+## How It Works
 
-Next, install TypeScript using the command:
+1. Select text layers or a frame in your Figma design
+2. Click "Analyze" to audit the content
+3. Review recommendations and apply fixes individually or bulk
 
-  npm install -g typescript
+The plugin connects to our content linting API at `https://content-lint.vercel.app` to analyze text against established content design system guidelines.
 
-Finally, in the directory of your plugin, get the latest type definitions for the plugin API by running:
+## Requirements
 
-  npm install --save-dev @figma/plugin-typings
+- Figma Desktop app
+- Internet connection for API calls
 
-If you are familiar with JavaScript, TypeScript will look very familiar. In fact, valid JavaScript code
-is already valid Typescript code.
+## Installation
 
-TypeScript adds type annotations to variables. This allows code editors such as Visual Studio Code
-to provide information about the Figma API while you are writing code, as well as help catch bugs
-you previously didn't notice.
+1. Clone this repository
+2. Open Figma Desktop
+3. Go to Plugins > Development > Import plugin from manifest...
+4. Select the `manifest.json` file from this repository
 
-For more information, visit https://www.typescriptlang.org/
+## Development Setup
 
-Using TypeScript requires a compiler to convert TypeScript (code.ts) into JavaScript (code.js)
-for the browser to run.
+This plugin uses TypeScript and NPM. To set up the development environment:
 
-We recommend writing TypeScript code using Visual Studio code:
+1. Download Node.js which comes with NPM: https://nodejs.org/en/download/
+2. Install dependencies: `npm install`
+3. Install TypeScript: `npm install -g typescript`
+4. Install Figma plugin typings: `npm run typings`
+5. Build the plugin: `npm run build`
+6. For development, use: `npm run watch` to auto-compile TypeScript changes
 
-1. Download Visual Studio Code if you haven't already: https://code.visualstudio.com/.
-2. Open this directory in Visual Studio Code.
-3. Compile TypeScript to JavaScript: Run the "Terminal > Run Build Task..." menu item,
-    then select "npm: watch". You will have to do this again every time
-    you reopen Visual Studio Code.
+## API Integration
 
-That's it! Visual Studio Code will regenerate the JavaScript file every time you save.
+The plugin integrates with a backend API for content analysis. The API endpoint is configured in the plugin code and requires network access permissions.
+
+## Contributing
+
+Contributions are welcome! Please ensure code follows TypeScript best practices and includes appropriate type annotations.
+
+## License
+
+This project is licensed under the MIT License.
