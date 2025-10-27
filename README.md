@@ -45,10 +45,7 @@ This plugin uses TypeScript and NPM. To set up the development environment:
 
 The plugin integrates with a backend API for content analysis. The API endpoint is configured in the plugin code and requires network access permissions.
 
-## Contributing
 
-Contributions are welcome! Please ensure code follows TypeScript best practices and includes appropriate type annotations.
+## By
 
-## License
-
-This project is licensed under the MIT License.
+Built with ❤️ by Karan + LLMs
