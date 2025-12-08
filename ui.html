@@ -813,6 +813,18 @@
     <script>
         const API_URL = 'https://content-lint.vercel.app/api/analyze';
 
+        const BATCH_SIZE = 20;
+        const MAX_PARALLEL_BATCHES = 3;
+
+        // Utility: Split array into chunks
+        function chunkArray(array, size) {
+            const chunks = [];
+            for (let i = 0; i < array.length; i += size) {
+                chunks.push(array.slice(i, i + size));
+            }
+            return chunks;
+        }
+
         let currentTextLayers = [];
         let analysisResults = [];
         let currentFrameId = null;
@@ -1350,67 +1362,103 @@
             loadingStartTime = null;
         }
         async function analyzeContent(textLayers, optimizationHint) {
-            // Estimate time based on complexity
-            const estimatedTime = textLayers.length > 20 ? 28000 :
-                textLayers.length > 10 ? 20000 : 12000;
+            const batches = chunkArray(textLayers, BATCH_SIZE);
+            const totalLayers = textLayers.length;
 
-            // Show loading with timer
-            showLoadingWithTimer(textLayers.length, estimatedTime);
+            showLoadingWithTimer(totalLayers, Math.ceil(batches.length / MAX_PARALLEL_BATCHES) * 15000);
 
             analyzeBtn.disabled = true;
-            const originalText = analyzeBtn.textContent;
-            analyzeBtn.textContent = 'Analyzing...';
             fixAllBtn.style.display = 'none';
 
+            let allResults = [];
+            let completedLayers = 0;
+
             try {
-                updateLoadingStatus('Checking cache...');
+                // Process in controlled parallel groups
+                for (let i = 0; i < batches.length; i += MAX_PARALLEL_BATCHES) {
+                    const batchGroup = batches.slice(i, i + MAX_PARALLEL_BATCHES);
 
-                const payload = textLayers.map(layer => ({
-                    id: layer.id,
-                    text: layer.text,
-                    likelyCompliant: layer.likelyCompliant || false
-                }));
+                    updateLoadingStatus(`Processing batch ${i + 1}-${Math.min(i + MAX_PARALLEL_BATCHES, batches.length)} of ${batches.length}...`);
 
-                updateLoadingStatus(`Analyzing ${textLayers.length} text layers...`);
+                    const batchPromises = batchGroup.map(async (batch, groupIndex) => {
+                        const batchIndex = i + groupIndex;
 
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        textLayers: payload,
-                        clientHints: {
-                            optimizationHint: optimizationHint,
-                            totalLayers: textLayers.length,
-                            estimatedCompliant: textLayers.filter(l => l.likelyCompliant).length
+                        try {
+                            const payload = batch.map(layer => ({
+                                id: layer.id,
+                                text: layer.text,
+                                likelyCompliant: layer.likelyCompliant || false
+                            }));
+
+                            const response = await fetch(API_URL, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    textLayers: payload,
+                                    clientHints: {
+                                        batchIndex,
+                                        totalBatches: batches.length,
+                                        totalLayers,
+                                        estimatedCompliant: batch.filter(l => l.likelyCompliant).length
+                                    }
+                                })
+                            });
+
+                            if (!response.ok) {
+                                throw new Error(`Batch ${batchIndex + 1} failed: HTTP ${response.status}`);
+                            }
+
+                            const data = await response.json();
+
+                            if (!data.success) {
+                                throw new Error(data.error || 'Analysis failed');
+                            }
+
+                            completedLayers += batch.length;
+                            updateLoadingStatus(`Analyzed ${completedLayers}/${totalLayers} layers...`);
+
+                            return data.results;
+
+                        } catch (error) {
+                            console.error(`Batch ${batchIndex + 1} error:`, error);
+                            // Return fallback for failed batch
+                            return batch.map(layer => ({
+                                id: layer.id,
+                                hasViolations: false,
+                                violations: [],
+                                correctedText: layer.text,
+                                originalText: layer.text,
+                                confidence: 0.5,
+                                fallback: true,
+                                error: error.message
+                            }));
                         }
-                    })
-                });
+                    });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                    const batchResults = await Promise.allSettled(batchPromises);
+                    batchResults.forEach(result => {
+                        if (result.status === 'fulfilled') {
+                            allResults.push(...result.value);
+                        }
+                    });
                 }
 
-                const data = await response.json();
-
-                if (!data.success) {
-                    throw new Error(data.error || 'Analysis failed');
-                }
-
-                handleAnalysisResults(data);
-                ;
+                // Process results
+                analysisResults = allResults;
+                handleAnalysisResults({ results: allResults });
 
             } catch (error) {
                 showError(`Analysis failed: ${error.message}`);
                 recommendations.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-icon">⚠️</div>
-                <p>Analysis failed</p>
-            </div>
-        `;
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <p>Analysis failed</p>
+                    </div>
+                `;
             } finally {
-                hideLoading(); // Replace stopProgress() with this
+                hideLoading();
                 analyzeBtn.disabled = false;
-                analyzeBtn.textContent = originalText;
+                analyzeBtn.textContent = 'Re-analyze';
             }
         }
     </script>

@@ -3,6 +3,9 @@ figma.showUI(__html__, { width: 520, height: 800, themeColors: true });
 let selectedTextNodes: any[] = [];
 let currentSelectedFrameId: string | null = null;
 
+const BATCH_SIZE = 20;
+const MAX_PARALLEL_BATCHES = 3;
+
 // Enhanced state tracking for fixed text with expiration
 let fixedTextRegistry = new Map<string, {
   originalText: string;
@@ -375,14 +378,22 @@ figma.ui.onmessage = async (msg: any) => {
         
         const compliantCount = alreadyCompliant.length;
         const totalCount = textNodes.length;
-        
+
+        // NEW: Split layers into batches
+        const allLayers = [...textLayers, ...compliantLayers];
+        // const needsAnalysis = textLayers; // Only non-compliant - already declared above
+
         figma.ui.postMessage({
           type: 'text-extracted',
-          textLayers: [...textLayers, ...compliantLayers], // Send all for UI display
-          analyzeOnlyLayers: textLayers, // Only these go to API
+          textLayers: allLayers,
+          analyzeOnlyLayers: needsAnalysis,
           totalLayers: totalCount,
           compliantLayers: compliantCount,
           needsAnalysisCount: needsAnalysis.length,
+          batchInfo: {
+            totalBatches: Math.ceil(needsAnalysis.length / BATCH_SIZE),
+            batchSize: BATCH_SIZE
+          }, // NEW
           frameId: analysisType === 'frame' ? selection[0].id : null,
           contextName,
           analysisType,
