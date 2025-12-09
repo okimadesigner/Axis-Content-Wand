@@ -843,14 +843,20 @@
           // NUMBER FORMATTING (Critical - with context awareness)
           {
             id: 'indian_comma_format',
-            pattern: /₹\s*(\d)(\d{2})(\d{2})(\d{3})\b/g, // Matches ₹1,00,000 pattern
-            replacement: '₹$1,$2,$3,$4',
+            pattern: /(₹|Rs\.?|INR)\s*([\d,]+)(\.\d+)?\b/gi,
             category: 'localisation',
-            confidence: 0.95,
+            confidence: 1.0,
             description: 'Apply Indian comma format (3:2:2 rule)',
-            // Only apply when currency context present
-            contextRequired: ['₹', 'amount', 'balance', 'payment', 'price', 'cost'],
-            excludeIfNear: ['phone', 'mobile', 'PIN', 'OTP', 'account number', 'reference']
+            customReplacer: (match, currency, number, decimals) => {
+              const cleanNumber = parseFloat(number.replace(/,/g, ''));
+              if (isNaN(cleanNumber)) return match;
+
+              const formatted = new Intl.NumberFormat('en-IN', {
+                maximumFractionDigits: 2
+              }).format(cleanNumber);
+
+              return `₹${formatted}${decimals || ''}`;
+            }
           },
 
           // PUNCTUATION - Full stop in headings
@@ -885,15 +891,25 @@
             description: 'Spell out "minimum" instead of "min"'
           },
 
-          // DATE FORMAT (DD/MM/YYYY enforcement)
+          // DATE FORMAT (DD/MM/YYYY enforcement with smart detection)
           {
             id: 'date_format_us_to_indian',
             pattern: /\b(\d{2})\/(\d{2})\/(\d{4})\b/g,
-            replacement: '$2/$1/$3', // Swap MM/DD to DD/MM
             category: 'localisation',
-            confidence: 0.85,
-            description: 'Convert to DD/MM/YYYY format',
-            requiresValidation: true // Flag for manual review
+            confidence: 0.70, // Lower confidence
+            description: 'Potential US date format (ambiguous)',
+            customReplacer: (match, first, second, year) => {
+              // Only auto-fix if first part is >12 (definitely DD/MM)
+              if (parseInt(first) > 12) {
+                return match; // Already DD/MM format
+              }
+              // If second part is >12, it's MM/DD - swap it
+              if (parseInt(second) > 12) {
+                return `${second}/${first}/${year}`;
+              }
+              // Both ≤12 = ambiguous, flag but don't change
+              return `[VERIFY_DATE: ${match}]`;
+            }
           },
 
           // UK SPELLING
@@ -943,37 +959,47 @@
           let correctedText = text;
           let appliedRules = [];
 
-          INSTANT_RULES.forEach(rule => {
-            // Context checks
-            if (rule.applyOnlyIf === 'isHeading' && !metadata.isHeading) return;
-            if (rule.applyOnlyIf === 'isError' && !metadata.isError) return;
+          try {
+            INSTANT_RULES.forEach(rule => {
+              // Context checks
+              if (rule.applyOnlyIf === 'isHeading' && !metadata.isHeading) return;
+              if (rule.applyOnlyIf === 'isError' && !metadata.isError) return;
 
-            // Exclusion checks for number formatting
-            if (rule.excludeIfNear) {
-              const hasExclusion = rule.excludeIfNear.some(term =>
-                text.toLowerCase().includes(term.toLowerCase())
-              );
-              if (hasExclusion) return;
-            }
+              // Exclusion checks for number formatting
+              if (rule.excludeIfNear) {
+                const hasExclusion = rule.excludeIfNear.some(term =>
+                  text.toLowerCase().includes(term.toLowerCase())
+                );
+                if (hasExclusion) return;
+              }
 
-            // Apply rule
-            if (rule.pattern.test(correctedText)) {
-              const matches = correctedText.match(rule.pattern);
+              // Apply rule
+              if (rule.pattern.test(correctedText)) {
+                const matches = correctedText.match(rule.pattern);
 
-              violations.push({
-                original: matches[0],
-                suggested: correctedText.replace(rule.pattern, rule.replacement),
-                confidence: rule.confidence,
-                ruleCategory: rule.category,
-                ruleDescription: rule.description,
-                ruleId: rule.id,
-                tier: 'client_instant'
-              });
+                // Apply the replacement
+                const originalBeforeReplacement = correctedText;
+                correctedText = rule.customReplacer ?
+                  correctedText.replace(rule.pattern, (match, ...args) => rule.customReplacer(match, ...args)) :
+                  correctedText.replace(rule.pattern, rule.replacement);
 
-              correctedText = correctedText.replace(rule.pattern, rule.replacement);
-              appliedRules.push(rule.id);
-            }
-          });
+                violations.push({
+                  original: matches[0],
+                  suggested: correctedText !== originalBeforeReplacement ? correctedText : correctedText.replace(rule.pattern, rule.replacement),
+                  confidence: rule.confidence,
+                  ruleCategory: rule.category,
+                  ruleDescription: rule.description,
+                  ruleId: rule.id,
+                  tier: 'client_instant'
+                });
+
+                appliedRules.push(rule.id);
+              }
+            });
+          } catch (error) {
+            console.warn('Instant rules processing error:', error);
+            // Continue with original text if there's an error
+          }
 
           return {
             hasViolations: violations.length > 0,
