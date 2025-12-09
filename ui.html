@@ -825,6 +825,305 @@
             return chunks;
         }
 
+        // ============================================
+        // TIER 1: INSTANT REGEX ENFORCEMENT
+        // ============================================
+
+        const INSTANT_RULES = [
+          // CURRENCY (Critical)
+          {
+            id: 'currency_rs_to_rupee',
+            pattern: /\b(Rs\.?|INR)\s*(\d)/gi,
+            replacement: '₹$2',
+            category: 'localisation',
+            confidence: 0.98,
+            description: 'Use ₹ symbol instead of Rs./INR'
+          },
+
+          // NUMBER FORMATTING (Critical - with context awareness)
+          {
+            id: 'indian_comma_format',
+            pattern: /₹\s*(\d)(\d{2})(\d{2})(\d{3})\b/g, // Matches ₹1,00,000 pattern
+            replacement: '₹$1,$2,$3,$4',
+            category: 'localisation',
+            confidence: 0.95,
+            description: 'Apply Indian comma format (3:2:2 rule)',
+            // Only apply when currency context present
+            contextRequired: ['₹', 'amount', 'balance', 'payment', 'price', 'cost'],
+            excludeIfNear: ['phone', 'mobile', 'PIN', 'OTP', 'account number', 'reference']
+          },
+
+          // PUNCTUATION - Full stop in headings
+          {
+            id: 'no_period_in_heading',
+            pattern: /^(.+)\.\s*$/,
+            replacement: '$1',
+            category: 'punctuation',
+            confidence: 0.92,
+            description: 'Remove full stop from heading',
+            applyOnlyIf: 'isHeading' // Flag from layer metadata
+          },
+
+          // ERROR TONE - Forbidden words
+          {
+            id: 'error_tone_oops',
+            pattern: /\b(Oops|Uh-oh|Uh oh|Aww snap|Oh no)\b/gi,
+            replacement: '[REMOVE_CASUAL_TONE]',
+            category: 'tone',
+            confidence: 0.90,
+            description: 'Avoid casual error language',
+            applyOnlyIf: 'isError'
+          },
+
+          // ABBREVIATIONS
+          {
+            id: 'min_to_minimum',
+            pattern: /\bmin\b(?!ute|imum)/gi,
+            replacement: 'minimum',
+            category: 'abbreviation',
+            confidence: 0.88,
+            description: 'Spell out "minimum" instead of "min"'
+          },
+
+          // DATE FORMAT (DD/MM/YYYY enforcement)
+          {
+            id: 'date_format_us_to_indian',
+            pattern: /\b(\d{2})\/(\d{2})\/(\d{4})\b/g,
+            replacement: '$2/$1/$3', // Swap MM/DD to DD/MM
+            category: 'localisation',
+            confidence: 0.85,
+            description: 'Convert to DD/MM/YYYY format',
+            requiresValidation: true // Flag for manual review
+          },
+
+          // UK SPELLING
+          {
+            id: 'us_to_uk_check',
+            pattern: /\bcheck(?:book)?\b/gi,
+            replacement: 'cheque$1',
+            category: 'spelling',
+            confidence: 0.93,
+            description: 'Use UK spelling: cheque not check'
+          },
+
+          // ACTIVE VOICE PATTERNS
+          {
+            id: 'passive_to_active_has_been',
+            pattern: /\b(has|have) been (sent|processed|completed)\b/gi,
+            replacement: '[USE_ACTIVE_VOICE]',
+            category: 'grammar',
+            confidence: 0.80,
+            description: 'Use active voice instead of passive'
+          },
+
+          // PLEASE/SORRY OVERUSE
+          {
+            id: 'excessive_please',
+            pattern: /(please.*please|kindly.*please)/gi,
+            replacement: '[REDUCE_POLITENESS]',
+            category: 'tone',
+            confidence: 0.87,
+            description: 'Avoid overusing "please"'
+          },
+
+          // TIME FORMAT
+          {
+            id: 'time_format_12hr',
+            pattern: /(\d{1,2}):(\d{2})\s*(AM|PM)/gi,
+            replacement: '$1:$2 $3'.toLowerCase(),
+            category: 'formatting',
+            confidence: 0.95,
+            description: 'Use lowercase am/pm'
+          }
+        ];
+
+        // Pre-process text with instant rules
+        function applyInstantRules(text, metadata = {}) {
+          let violations = [];
+          let correctedText = text;
+          let appliedRules = [];
+
+          INSTANT_RULES.forEach(rule => {
+            // Context checks
+            if (rule.applyOnlyIf === 'isHeading' && !metadata.isHeading) return;
+            if (rule.applyOnlyIf === 'isError' && !metadata.isError) return;
+
+            // Exclusion checks for number formatting
+            if (rule.excludeIfNear) {
+              const hasExclusion = rule.excludeIfNear.some(term =>
+                text.toLowerCase().includes(term.toLowerCase())
+              );
+              if (hasExclusion) return;
+            }
+
+            // Apply rule
+            if (rule.pattern.test(correctedText)) {
+              const matches = correctedText.match(rule.pattern);
+
+              violations.push({
+                original: matches[0],
+                suggested: correctedText.replace(rule.pattern, rule.replacement),
+                confidence: rule.confidence,
+                ruleCategory: rule.category,
+                ruleDescription: rule.description,
+                ruleId: rule.id,
+                tier: 'client_instant'
+              });
+
+              correctedText = correctedText.replace(rule.pattern, rule.replacement);
+              appliedRules.push(rule.id);
+            }
+          });
+
+          return {
+            hasViolations: violations.length > 0,
+            violations,
+            correctedText,
+            originalText: text,
+            appliedRules,
+            needsGeminiAnalysis: !violations.length || violations.some(v => v.confidence < 0.90)
+          };
+        }
+
+        // Modified analyzeContent function
+        async function analyzeContent(textLayers, optimizationHint) {
+          const batches = chunkArray(textLayers, BATCH_SIZE);
+          const totalLayers = textLayers.length;
+
+          showLoadingWithTimer(totalLayers, Math.ceil(batches.length / MAX_PARALLEL_BATCHES) * 15000);
+
+          analyzeBtn.disabled = true;
+          fixAllBtn.style.display = 'none';
+
+          let allResults = [];
+          let instantFixCount = 0;
+
+          try {
+            // TIER 1: Apply instant rules first
+            const preProcessed = textLayers.map(layer => {
+              const metadata = {
+                isHeading: layer.name?.toLowerCase().includes('heading') ||
+                           layer.name?.toLowerCase().includes('title'),
+                isError: layer.name?.toLowerCase().includes('error')
+              };
+
+              const result = applyInstantRules(layer.text, metadata);
+
+              if (result.hasViolations && !result.needsGeminiAnalysis) {
+                instantFixCount++;
+                return {
+                  id: layer.id,
+                  ...result,
+                  tier1Only: true
+                };
+              }
+
+              return {
+                id: layer.id,
+                text: result.correctedText || layer.text,
+                originalText: layer.text,
+                tier1Violations: result.violations,
+                likelyCompliant: layer.likelyCompliant
+              };
+            });
+
+            // Separate layers that need Gemini
+            const needsGemini = preProcessed.filter(l => !l.tier1Only);
+            const tier1Results = preProcessed.filter(l => l.tier1Only);
+
+            console.log(`✅ Tier 1: Fixed ${instantFixCount}/${totalLayers} instantly`);
+            console.log(`🔄 Tier 2: Sending ${needsGemini.length} to Gemini`);
+
+            // TIER 2: Process remaining with Gemini (batched)
+            if (needsGemini.length > 0) {
+              const geminiResults = await processGeminiBatches(needsGemini, batches.length);
+              allResults = [...tier1Results, ...geminiResults];
+            } else {
+              allResults = tier1Results;
+            }
+
+            // Process results
+            analysisResults = allResults;
+            handleAnalysisResults({ results: allResults });
+
+          } catch (error) {
+            showError(`Analysis failed: ${error.message}`);
+          } finally {
+            hideLoading();
+            analyzeBtn.disabled = false;
+            analyzeBtn.textContent = 'Re-analyze';
+          }
+        }
+
+        // Helper: Process Gemini batches
+        async function processGeminiBatches(layers, totalBatches) {
+          const batches = chunkArray(layers, BATCH_SIZE);
+          let allResults = [];
+          let completedLayers = 0;
+
+          for (let i = 0; i < batches.length; i += MAX_PARALLEL_BATCHES) {
+            const batchGroup = batches.slice(i, i + MAX_PARALLEL_BATCHES);
+
+            updateLoadingStatus(`Processing batch ${i + 1}-${Math.min(i + MAX_PARALLEL_BATCHES, batches.length)} of ${batches.length}...`);
+
+            const batchPromises = batchGroup.map(async (batch, groupIndex) => {
+              const batchIndex = i + groupIndex;
+
+              try {
+                const payload = batch.map(layer => ({
+                  id: layer.id,
+                  text: layer.text,
+                  likelyCompliant: layer.likelyCompliant || false
+                }));
+
+                const response = await fetch(API_URL, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    textLayers: payload,
+                    clientHints: {
+                      batchIndex,
+                      totalBatches: batches.length,
+                      tier1PreProcessed: true // Signal that Tier 1 already ran
+                    }
+                  })
+                });
+
+                if (!response.ok) {
+                  throw new Error(`Batch ${batchIndex + 1} failed: HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                completedLayers += batch.length;
+                updateLoadingStatus(`Analyzed ${completedLayers}/${layers.length} layers...`);
+
+                return data.results;
+
+              } catch (error) {
+                console.error(`Batch ${batchIndex + 1} error:`, error);
+                return batch.map(layer => ({
+                  id: layer.id,
+                  hasViolations: false,
+                  violations: layer.tier1Violations || [],
+                  correctedText: layer.text,
+                  originalText: layer.originalText || layer.text,
+                  confidence: 0.5,
+                  fallback: true
+                }));
+              }
+            });
+
+            const batchResults = await Promise.allSettled(batchPromises);
+            batchResults.forEach(result => {
+              if (result.status === 'fulfilled') {
+                allResults.push(...result.value);
+              }
+            });
+          }
+
+          return allResults;
+        }
+
         let currentTextLayers = [];
         let analysisResults = [];
         let currentFrameId = null;
@@ -1074,19 +1373,19 @@
                         <span class="text-name">${escapeHtml(layer?.name || 'Unknown Layer')}</span>
                         <button class="fix-btn" data-node-id="${result.id}">Fix</button>
                     </div>
-                    
+
                     <div class="content-label">Original</div>
                     <div class="text-content original">${escapeHtml(originalText)}</div>
-                    
+
                     <div class="content-label">Suggested Fix</div>
                     <div class="text-content corrected">${escapeHtml(correctedText)}</div>
-                    
+
                     <div class="violations">
                         ${(result.violations || []).map(violation => `
                             <div class="violation">
                                 <div class="violation-type">${escapeHtml((violation.type || 'violation').replace(/_/g, ' '))}</div>
                                 <div class="violation-change">
-                                    Change <span class="violation-original">"${escapeHtml(violation.original || '')}"</span> 
+                                    Change <span class="violation-original">"${escapeHtml(violation.original || '')}"</span>
                                     to <span class="violation-suggested">"${escapeHtml(violation.suggested || '')}"</span>
                                 </div>
                                 <div class="violation-rule">${escapeHtml(violation.rule || '')}</div>
