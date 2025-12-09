@@ -891,26 +891,7 @@
             description: 'Spell out "minimum" instead of "min"'
           },
 
-          // DATE FORMAT (DD/MM/YYYY enforcement with smart detection)
-          {
-            id: 'date_format_us_to_indian',
-            pattern: /\b(\d{2})\/(\d{2})\/(\d{4})\b/g,
-            category: 'localisation',
-            confidence: 0.70, // Lower confidence
-            description: 'Potential US date format (ambiguous)',
-            customReplacer: (match, first, second, year) => {
-              // Only auto-fix if first part is >12 (definitely DD/MM)
-              if (parseInt(first) > 12) {
-                return match; // Already DD/MM format
-              }
-              // If second part is >12, it's MM/DD - swap it
-              if (parseInt(second) > 12) {
-                return `${second}/${first}/${year}`;
-              }
-              // Both ≤12 = ambiguous, flag but don't change
-              return `[VERIFY_DATE: ${match}]`;
-            }
-          },
+
 
           // UK SPELLING
           {
