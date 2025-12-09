@@ -1,5 +1,5 @@
 {
-  "name": "Axis Content Wand",
+  "name": "Axis Bank Content Wand",
   "id": "content-lint-plugin",
   "api": "1.0.0",
   "main": "code.js",

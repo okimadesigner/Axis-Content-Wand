@@ -1,4 +1,4 @@
-# Axis Content Wand
+# Axis Bank Content Wand
 
 A powerful Figma plugin that audits and improves design copy based on content design system guidelines. With a single click, analyze text layers or entire frames and get instant recommendations for content improvements.
 

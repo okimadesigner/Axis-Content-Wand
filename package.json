@@ -1,5 +1,5 @@
 {
-  "name": "Content-Lint",
+  "name": "axis-bank-content-wand",
   "version": "1.0.0",
   "description": "Your Figma Plugin",
   "main": "code.js",
