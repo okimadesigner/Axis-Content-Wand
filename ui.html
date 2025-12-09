@@ -1057,6 +1057,14 @@
             const needsGemini = preProcessed.filter(l => !l.tier1Only);
             const tier1Results = preProcessed.filter(l => l.tier1Only);
 
+            const startTime = Date.now();
+            // After applyInstantRules runs:
+            console.log(`🎯 Tier 1 Performance:
+  Total: ${textLayers.length}
+  Fixed: ${instantFixCount} (${Math.round(instantFixCount/textLayers.length*100)}%)
+  Remaining: ${needsGemini.length}
+  Time: ${Date.now() - startTime}ms
+`);
             console.log(`✅ Tier 1: Fixed ${instantFixCount}/${totalLayers} instantly`);
             console.log(`🔄 Tier 2: Sending ${needsGemini.length} to Gemini`);
 
