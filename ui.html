@@ -1128,13 +1128,17 @@
           const batches = chunkArray(textLayers, BATCH_SIZE);
           const totalLayers = textLayers.length;
 
-          showLoadingWithTimer(totalLayers, Math.ceil(batches.length / MAX_PARALLEL_BATCHES) * 15000);
+        // Get selected model
+        const selectedModel = document.querySelector('input[name="model"]:checked').value;
+        console.log(`🎯 Using model: ${selectedModel}`);
 
-          analyzeBtn.disabled = true;
-          fixAllBtn.style.display = 'none';
+        showLoadingWithTimer(totalLayers, Math.ceil(batches.length / MAX_PARALLEL_BATCHES) * 15000);
 
-          let allResults = [];
-          let instantFixCount = 0;
+        analyzeBtn.disabled = true;
+        fixAllBtn.style.display = 'none';
+
+        let allResults = [];
+        let instantFixCount = 0;
 
           try {
             // TIER 1: Apply instant rules first
@@ -1227,6 +1231,7 @@
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     textLayers: payload,
+                    selectedModel: selectedModel, // NEW: Pass selected model
                     clientHints: {
                       batchIndex,
                       totalBatches: batches.length,
@@ -1236,6 +1241,16 @@
                 });
 
                 if (!response.ok) {
+                  if (response.status === 429) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'rate-limit-error';
+                    errorDiv.innerHTML = `
+                      <strong>⚠️ Rate Limit Reached</strong>
+                      <div class="suggestion">Try switching to Nova or Qwen model above and re-analyze.</div>
+                    `;
+                    recommendations.insertBefore(errorDiv, recommendations.firstChild);
+                    throw new Error(`Rate limit: Try different model`);
+                  }
                   throw new Error(`Batch ${batchIndex + 1} failed: HTTP ${response.status}`);
                 }
 
