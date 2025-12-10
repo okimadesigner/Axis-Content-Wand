@@ -1186,7 +1186,7 @@
 
             // TIER 2: Process remaining with Gemini (batched)
             if (needsGemini.length > 0) {
-              const geminiResults = await processGeminiBatches(needsGemini, batches.length);
+              const geminiResults = await processGeminiBatches(needsGemini, batches.length, selectedModel);
               allResults = [...tier1Results, ...geminiResults];
             } else {
               allResults = tier1Results;
@@ -1206,7 +1206,7 @@
         }
 
         // Helper: Process Gemini batches
-        async function processGeminiBatches(layers, totalBatches) {
+        async function processGeminiBatches(layers, totalBatches, selectedModel) {
           const batches = chunkArray(layers, BATCH_SIZE);
           let allResults = [];
           let completedLayers = 0;
@@ -1262,14 +1262,25 @@
 
               } catch (error) {
                 console.error(`Batch ${batchIndex + 1} error:`, error);
+
+                // Show the actual error to user
+                showError(`Batch ${batchIndex + 1} failed: ${error.message}`);
+
                 return batch.map(layer => ({
                   id: layer.id,
-                  hasViolations: false,
-                  violations: layer.tier1Violations || [],
+                  hasViolations: true,  // ✅ Mark as violation so user sees it
+                  violations: [{
+                    original: layer.text,
+                    suggested: layer.text,
+                    confidence: 0,
+                    ruleCategory: 'system_error',
+                    ruleDescription: `API Error: ${error.message}`
+                  }],
                   correctedText: layer.text,
-                  originalText: layer.originalText || layer.text,
-                  confidence: 0.5,
-                  fallback: true
+                  originalText: layer.text,
+                  confidence: 0,
+                  fallback: true,
+                  error: error.message
                 }));
               }
             });

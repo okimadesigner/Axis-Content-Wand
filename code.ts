@@ -1,4 +1,4 @@
-figma.showUI(__html__, { width: 520, height: 800, themeColors: true });
+figma.showUI(__html__, { width: 520, height: 1200, themeColors: true });
 
 let selectedTextNodes: any[] = [];
 let currentSelectedFrameId: string | null = null;
