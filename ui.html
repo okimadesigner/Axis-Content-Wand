@@ -545,88 +545,126 @@
 .model-selector {
     margin: 16px 0;
     padding: 16px;
-    background: rgba(151, 20, 77, 0.05);
+    background: rgba(151, 20, 77, 0.04);
     border-radius: 8px;
-    border: 1px solid rgba(151, 20, 77, 0.1);
+    border: 1px solid rgba(151, 20, 77, 0.08);
 }
 
 .model-label {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     color: var(--figma-color-text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 
 .model-options {
     display: flex;
-    gap: 12px;
-    justify-content: center;
+    gap: 16px;
 }
 
-.model-option {
+.model-radio {
     flex: 1;
     display: flex;
-    flex-direction: column;
     align-items: center;
+    gap: 8px;
     padding: 10px 12px;
     background: var(--figma-color-bg);
-    border: 2px solid var(--figma-color-border);
-    border-radius: 8px;
+    border: 1.5px solid var(--figma-color-border);
+    border-radius: 6px;
     cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.model-radio:hover {
+    border-color: rgba(151, 20, 77, 0.3);
+    background: rgba(151, 20, 77, 0.02);
+}
+
+.model-radio input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Custom radio button */
+.radio-custom {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--figma-color-border);
+    border-radius: 50%;
+    position: relative;
+    flex-shrink: 0;
     transition: all 0.2s ease;
 }
 
-.model-option:hover {
-    border-color: rgba(151, 20, 77, 0.3);
-    background: rgba(151, 20, 77, 0.03);
-}
-
-.model-option input[type="radio"] {
-    position: absolute;
-    opacity: 0;
-}
-
-.model-option input[type="radio"]:checked + .model-name {
-    color: #97144d;
-    font-weight: 600;
-}
-
-.model-option input[type="radio"]:checked ~ .model-badge {
-    opacity: 1;
-}
-
-.model-option:has(input:checked) {
+.model-radio input:checked ~ .radio-custom {
     border-color: #97144d;
-    background: rgba(151, 20, 77, 0.08);
+    background: #97144d;
+}
+
+.model-radio input:checked ~ .radio-custom::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    background: white;
+    border-radius: 50%;
+}
+
+.model-radio input:checked {
+    border-color: #97144d;
+    background: rgba(151, 20, 77, 0.06);
+}
+
+.model-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
 }
 
 .model-name {
     font-size: 13px;
     font-weight: 500;
     color: var(--figma-color-text);
-    margin-bottom: 4px;
+}
+
+.model-radio input:checked ~ .radio-custom ~ .model-info .model-name {
+    color: #97144d;
+    font-weight: 600;
 }
 
 .model-badge {
     font-size: 9px;
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: 3px;
     font-weight: 600;
     text-transform: uppercase;
-    opacity: 0.6;
-    transition: opacity 0.2s;
+    letter-spacing: 0.3px;
 }
 
 .model-badge.fast {
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(59, 130, 246, 0.12);
     color: #2563eb;
 }
 
 .model-badge.unlimited {
-    background: rgba(34, 197, 94, 0.1);
+    background: rgba(34, 197, 94, 0.12);
     color: #16a34a;
+}
+
+.model-hint {
+    font-size: 10px;
+    color: #6b7280;
+    margin-top: 10px;
+    text-align: center;
+    line-height: 1.3;
 }
 
 /* Rate limit error styling */
@@ -877,19 +915,27 @@
             </p>
             <!-- Add this RIGHT AFTER the .hero-description paragraph -->
 <div class="model-selector">
-    <div class="model-label">Analysis Model:</div>
+    <div class="model-label">Analysis Model</div>
     <div class="model-options">
-        <label class="model-option">
+        <label class="model-radio">
             <input type="radio" name="model" value="gemini" checked>
-            <span class="model-name">Gemini</span>
-            <span class="model-badge fast">Fast</span>
+            <span class="radio-custom"></span>
+            <span class="model-info">
+                <span class="model-name">Gemini</span>
+                <span class="model-badge fast">FAST</span>
+            </span>
         </label>
-        <label class="model-option">
+
+        <label class="model-radio">
             <input type="radio" name="model" value="nova">
-            <span class="model-name">Nova</span>
-            <span class="model-badge unlimited">Unlimited</span>
+            <span class="radio-custom"></span>
+            <span class="model-info">
+                <span class="model-name">Nova</span>
+                <span class="model-badge unlimited">UNLIMITED</span>
+            </span>
         </label>
     </div>
+    <div class="model-hint">💡 Use Gemini for speed. Switch to Nova if quota reached.</div>
 </div>
             <button class="primary-btn" id="analyzeBtn" disabled>Select Frame or Text Layers</button>
             <div class="optimization-hint" id="optimizationHint" style="display: none;"></div>
