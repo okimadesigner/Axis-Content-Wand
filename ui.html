@@ -543,11 +543,7 @@
         }
 
 .model-selector {
-    margin: 16px 0;
-    padding: 16px;
-    background: rgba(151, 20, 77, 0.04);
-    border-radius: 8px;
-    border: 1px solid rgba(151, 20, 77, 0.08);
+    margin: 16px 0 20px 0;
 }
 
 .model-label {
@@ -556,12 +552,12 @@
     color: var(--figma-color-text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 }
 
 .model-options {
     display: flex;
-    gap: 16px;
+    gap: 12px;
 }
 
 .model-radio {
@@ -574,7 +570,7 @@
     border: 1.5px solid var(--figma-color-border);
     border-radius: 6px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     position: relative;
 }
 
@@ -597,7 +593,7 @@
     border-radius: 50%;
     position: relative;
     flex-shrink: 0;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
 }
 
 .model-radio input:checked ~ .radio-custom {
@@ -617,9 +613,9 @@
     border-radius: 50%;
 }
 
-.model-radio input:checked {
+.model-radio:has(input:checked) {
     border-color: #97144d;
-    background: rgba(151, 20, 77, 0.06);
+    background: rgba(151, 20, 77, 0.04);
 }
 
 .model-info {
@@ -662,8 +658,7 @@
 .model-hint {
     font-size: 10px;
     color: #6b7280;
-    margin-top: 10px;
-    text-align: center;
+    margin-top: 8px;
     line-height: 1.3;
 }
 
