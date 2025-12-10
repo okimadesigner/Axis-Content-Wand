@@ -5,10 +5,12 @@ A powerful Figma plugin that audits and improves design copy based on content de
 ## Features
 
 - **One-Click Analysis**: Select text layers or frames and analyze content compliance
+- **Dual AI Models**: Choose between Gemini (Fast) for speed or Nova (Unlimited) for capacity
 - **Intelligent Recommendations**: Get specific suggestions for improving copy based on guidelines
 - **Bulk Fixes**: Apply all recommended fixes at once with the "Fix All" button
 - **Optimized Analysis**: Smart caching and compliance detection skips already compliant content
 - **Real-time Feedback**: See violations and suggested improvements instantly
+- **Custom UI**: Modern interface with intuitive radio button controls
 
 ## How It Works
 
