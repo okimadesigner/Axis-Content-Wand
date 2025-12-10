@@ -1833,6 +1833,10 @@
             loadingStartTime = null;
         }
         async function analyzeContent(textLayers, optimizationHint) {
+            // ⬇️ MOVE THIS TO THE VERY TOP
+            const selectedModel = document.querySelector('input[name="model"]:checked').value;
+            console.log(`🎯 Client selected model: ${selectedModel}`);
+
             const batches = chunkArray(textLayers, BATCH_SIZE);
             const totalLayers = textLayers.length;
 
@@ -1864,15 +1868,16 @@
                             const response = await fetch(API_URL, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    textLayers: payload,
-                                    clientHints: {
-                                        batchIndex,
-                                        totalBatches: batches.length,
-                                        totalLayers,
-                                        estimatedCompliant: batch.filter(l => l.likelyCompliant).length
-                                    }
-                                })
+                            body: JSON.stringify({
+                                textLayers: payload,
+                                selectedModel: selectedModel,
+                                clientHints: {
+                                    batchIndex,
+                                    totalBatches: batches.length,
+                                    totalLayers,
+                                    estimatedCompliant: batch.filter(l => l.likelyCompliant).length
+                                }
+                            })
                             });
 
                             if (!response.ok) {
